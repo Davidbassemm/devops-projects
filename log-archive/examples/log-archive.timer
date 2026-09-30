@@ -1,0 +1,14 @@
+[Unit]
+Description=Daily Log Archive Timer
+Documentation=https://github.com/Davidbassemm/devops-projects/tree/main/log-archive
+
+[Timer]
+# Trigger daily at 02:00:00 AM server local time
+OnCalendar=*-*-* 02:00:00
+# Run immediately on boot if the previous scheduled window was missed
+Persistent=true
+# Unit to trigger (defaults to log-archive.service)
+Unit=log-archive.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,16 @@
+[Unit]
+Description=Automated System Log Archival Service
+Documentation=https://github.com/Davidbassemm/devops-projects/tree/main/log-archive
+After=network.target local-fs.target
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+# Execute log-archive on /var/log with 30-day retention in quiet mode
+ExecStart=/usr/local/bin/log-archive /var/log -o /var/log/archives -r 30 -q
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

@@ -18,6 +18,9 @@ Thumbs.db
 *.log
 *.tmp
 scratch/
+archived_logs/
+*.tar.gz
+*.sha256
 
 # IDE / Editor folders
 .vscode/

@@ -1,0 +1,24 @@
+# ==============================================================================
+# Cron Schedule Configuration Examples for log-archive
+# ==============================================================================
+# To install:
+#   1. Copy log-archive into your PATH (e.g., /usr/local/bin/log-archive)
+#   2. Edit your crontab using: crontab -e
+#   3. Paste the relevant schedule line below.
+# ==============================================================================
+
+# 1. Daily Backup at 02:00 AM (Recommended for standard Linux system logs)
+# Retains archives for 30 days and runs silently
+0 2 * * * /usr/local/bin/log-archive /var/log -o /var/log/archives -r 30 -q >> /var/log/archives/cron.log 2>&1
+
+# 2. Hourly Web Server Log Archival (Nginx / Apache)
+# Archives web logs hourly and retains the last 48 archives
+0 * * * * /usr/local/bin/log-archive /var/log/nginx -o /var/log/archives/nginx -k 48 -q >> /var/log/archives/nginx/cron.log 2>&1
+
+# 3. Weekly Deep Archive with Cloud Sync (Every Sunday at 03:00 AM)
+# Archives /var/log, uploads directly to an S3 bucket, and sends a Slack webhook alert
+0 3 * * 0 /usr/local/bin/log-archive /var/log -o /backup/weekly -c s3://my-company-backup-bucket/logs/ -w "https://hooks.slack.com/services/T00/B00/XXXX" -q >> /backup/weekly/cron.log 2>&1
+
+# 4. Application Logs Archival with File Exclusions (Every 6 hours)
+# Excludes active socket files and temp locks
+0 */6 * * * /usr/local/bin/log-archive /var/log/myapp -o /backup/myapp -e "*.sock" -e "*.tmp" -e "*.lock" -r 14 -q >> /backup/myapp/cron.log 2>&1

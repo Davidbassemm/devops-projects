@@ -9,25 +9,23 @@ A curated collection of practical DevOps projects, system automation tools, CI/C
 | # | Project Name | Tech Stack | Status | Directory |
 |---|:---|:---|:---:|:---|
 | 01 | **Server Performance Stats** | Bash, Linux `/proc`, POSIX tools | Completed | [`server-stats/`](./server-stats/) |
-| 02 | *Log Analyzer* | Bash, Python, RegEx | Planned | `log-analyzer/` |
-| 03 | *CI/CD Pipeline Automation* | GitHub Actions, Docker | Planned | `cicd-automation/` |
-| 04 | *Containerized Microservices* | Docker, Docker Compose | Planned | `container-apps/` |
-| 05 | *Infrastructure as Code (IaC)* | Terraform, AWS / Cloud | Planned | `terraform-infra/` |
+| 02 | **Log Archive Tool** | Bash, POSIX `tar`/`gzip`, Cron/Systemd | Completed | [`log-archive/`](./log-archive/) |
+| 03 | *Log Analyzer* | Bash, Python, RegEx | Planned | `log-analyzer/` |
+| 04 | *CI/CD Pipeline Automation* | GitHub Actions, Docker | Planned | `cicd-automation/` |
+| 05 | *Containerized Microservices* | Docker, Docker Compose | Planned | `container-apps/` |
+| 06 | *Infrastructure as Code (IaC)* | Terraform, AWS / Cloud | Planned | `terraform-infra/` |
 
 ---
 
-## Featured Project: Server Performance Stats (`server-stats/`)
+## Featured Projects
 
+### 1. Server Performance Stats (`server-stats/`)
 A zero-dependency Linux & macOS performance analysis tool inspired by the [roadmap.sh DevOps Project](https://roadmap.sh/projects/server-stats).
-
-### Key Features
-- **CPU Metrics**: Real-time delta CPU utilization, idle rate, and colored visual progress bars.
-- **Memory Metrics**: Total, Used, Free/Available RAM (MB/GB & percentages), Buffers/Cache, and Swap memory.
-- **Disk Metrics**: Total physical storage vs. used/free percentages and root (`/`) mount details.
-- **Process Profiling**: Top 5 processes sorted by CPU and Memory utilization.
-- **System Telemetry**: OS distribution, architecture, uptime, load averages, logged-in sessions, and failed login audits.
-
 👉 **[View Project Documentation & Source Code](./server-stats/)**
+
+### 2. Log Archive Tool (`log-archive/`)
+A robust CLI utility that archives and compresses system logs into timestamped `tar.gz` archives, maintains audit history logs, verifies checksums, and manages automated retention and offsite backup sync. Inspired by the [roadmap.sh DevOps Project](https://roadmap.sh/projects/log-archive-tool).
+👉 **[View Project Documentation & Source Code](./log-archive/)**
 
 ---
 
@@ -38,9 +36,18 @@ devops-projects/
 ├── .gitignore
 ├── LICENSE
 ├── README.md
-└── server-stats/
+├── server-stats/
+│   ├── README.md
+│   └── server-stats.sh
+└── log-archive/
     ├── README.md
-    └── server-stats.sh
+    ├── log-archive.sh
+    ├── log-archive
+    ├── test_log_archive.sh
+    └── examples/
+        ├── cron-schedule.tab
+        ├── log-archive.service
+        └── log-archive.timer
 ```
 
 ---
