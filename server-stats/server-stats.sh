@@ -86,7 +86,7 @@ get_system_info() {
   if [ -f /etc/os-release ]; then
     # shellcheck disable=SC1091
     . /etc/os-release
-    OS_NAME="${PRETTY_NAME:-$NAME}"
+    OS_NAME="${PRETTY_NAME:-${NAME:-Linux}}"
   elif command -v sw_vers >/dev/null 2>&1; then
     OS_NAME="$(sw_vers -productName) $(sw_vers -productVersion)"
   elif [ -f /etc/redhat-release ]; then
@@ -107,7 +107,7 @@ get_system_info() {
     LOAD_AVG="$(awk '{print $1 ", " $2 ", " $3}' /proc/loadavg)"
   elif command -v uptime >/dev/null 2>&1; then
     raw_uptime="$(uptime)"
-    UPTIME="$(echo "$raw_uptime" | sed -E 's/.*up +([^,]+), .*/\1/' | sed 's/^[ \t]*//')"
+    UPTIME="$(echo "$raw_uptime" | sed -E 's/.*up +//; s/, +[0-9]+ users?.*//' | sed 's/^[ \t]*//')"
     LOAD_AVG="$(echo "$raw_uptime" | sed -E 's/.*load averages?: //')"
   else
     UPTIME="N/A"
@@ -127,11 +127,11 @@ get_system_info() {
   # Failed Login Attempts
   FAILED_LOGINS="0"
   if [ -r /var/log/auth.log ]; then
-    FAILED_LOGINS=$(grep -s -c -E "Failed password|authentication failure" /var/log/auth.log 2>/dev/null || echo "0")
+    FAILED_LOGINS=$(grep -s -E "Failed password|authentication failure" /var/log/auth.log 2>/dev/null | wc -l | tr -d ' ')
   elif [ -r /var/log/secure ]; then
-    FAILED_LOGINS=$(grep -s -c -E "Failed password|authentication failure" /var/log/secure 2>/dev/null || echo "0")
+    FAILED_LOGINS=$(grep -s -E "Failed password|authentication failure" /var/log/secure 2>/dev/null | wc -l | tr -d ' ')
   elif command -v journalctl >/dev/null 2>&1 && [ -w /run/systemd/journal ]; then
-    FAILED_LOGINS=$(journalctl -u ssh -u sshd --since "yesterday" 2>/dev/null | grep -c -E "Failed password|authentication failure" 2>/dev/null || echo "0")
+    FAILED_LOGINS=$(journalctl -u ssh -u sshd --since "yesterday" 2>/dev/null | grep -E "Failed password|authentication failure" 2>/dev/null | wc -l | tr -d ' ')
   elif command -v lastb >/dev/null 2>&1 && [ "$(id -u)" -eq 0 ]; then
     FAILED_LOGINS=$(lastb 2>/dev/null | grep -v "^$" | grep -v "^btmp" | wc -l | tr -d ' ')
   else
@@ -214,6 +214,8 @@ get_memory_usage() {
     swap_total_kb=$(awk '/^SwapTotal:/ {print $2}' /proc/meminfo)
     swap_free_kb=$(awk '/^SwapFree:/ {print $2}' /proc/meminfo)
 
+    total_kb=${total_kb:-0}
+    free_kb=${free_kb:-0}
     buffers_kb=${buffers_kb:-0}
     cached_kb=${cached_kb:-0}
     swap_total_kb=${swap_total_kb:-0}
@@ -294,18 +296,18 @@ get_memory_usage() {
 # --- Disk Usage Calculation ---
 get_disk_usage() {
   # Root Filesystem (/)
-  read -r ROOT_FS ROOT_TOTAL_H ROOT_USED_H ROOT_AVAIL_H ROOT_PCT_RAW < <(df -h / 2>/dev/null | awk 'NR==2 {print $1, $2, $3, $4, $5}')
+  read -r ROOT_FS ROOT_TOTAL_H ROOT_USED_H ROOT_AVAIL_H ROOT_PCT_RAW < <(df -Ph / 2>/dev/null | awk 'NR==2 {print $1, $2, $3, $4, $5}')
   ROOT_PCT=$(echo "${ROOT_PCT_RAW:-0}" | tr -d '%')
   ROOT_FREE_PCT=$(awk -v u="$ROOT_PCT" 'BEGIN { printf "%.1f", 100 - u }')
 
   # Total storage calculation across physical filesystems
   if [ "$OS_TYPE" = "Darwin" ]; then
-    read -r DISK_TOTAL_MB DISK_USED_MB DISK_AVAIL_MB < <(df -m / 2>/dev/null | awk 'NR==2 {print $2, $3, $4}')
+    read -r DISK_TOTAL_MB DISK_USED_MB DISK_AVAIL_MB < <(df -Pm / 2>/dev/null | awk 'NR==2 {print $2, $3, $4}')
   else
     # Exclude virtual filesystems on Linux
-    read -r DISK_TOTAL_MB DISK_USED_MB DISK_AVAIL_MB < <(df -m -x tmpfs -x devtmpfs -x squashfs -x overlay -x iso9660 2>/dev/null | awk 'NR>1 {tot += $2; used += $3; free += $4} END {print tot, used, free}')
+    read -r DISK_TOTAL_MB DISK_USED_MB DISK_AVAIL_MB < <(df -Pm -x tmpfs -x devtmpfs -x squashfs -x overlay -x iso9660 2>/dev/null | awk 'NR>1 {tot += $2; used += $3; free += $4} END {print tot, used, free}')
     if [ -z "$DISK_TOTAL_MB" ] || [ "$DISK_TOTAL_MB" = "0" ]; then
-      read -r DISK_TOTAL_MB DISK_USED_MB DISK_AVAIL_MB < <(df -m / 2>/dev/null | awk 'NR==2 {print $2, $3, $4}')
+      read -r DISK_TOTAL_MB DISK_USED_MB DISK_AVAIL_MB < <(df -Pm / 2>/dev/null | awk 'NR==2 {print $2, $3, $4}')
     fi
   fi
 
@@ -331,7 +333,7 @@ get_disk_usage() {
 # --- Top 5 Processes by CPU ---
 show_top_cpu_processes() {
   printf "${BOLD}%-8s %-12s %-8s %-8s %s${RESET}\n" "PID" "USER" "%CPU" "%MEM" "COMMAND"
-  printf "${DIM}------------------------------------------------------------${RESET}\n"
+  printf "%s\n" "${DIM}------------------------------------------------------------${RESET}"
 
   if [ "$OS_TYPE" = "Darwin" ]; then
     ps -A -o pid,user,%cpu,%mem,comm -r 2>/dev/null | tail -n +2 | head -n 5 | while read -r pid usr cpu mem cmd; do
@@ -352,7 +354,7 @@ show_top_cpu_processes() {
 # --- Top 5 Processes by Memory ---
 show_top_mem_processes() {
   printf "${BOLD}%-8s %-12s %-8s %-8s %s${RESET}\n" "PID" "USER" "%MEM" "%CPU" "COMMAND"
-  printf "${DIM}------------------------------------------------------------${RESET}\n"
+  printf "%s\n" "${DIM}------------------------------------------------------------${RESET}"
 
   if [ "$OS_TYPE" = "Darwin" ]; then
     ps -A -o pid,user,%mem,%cpu,comm -m 2>/dev/null | tail -n +2 | head -n 5 | while read -r pid usr mem cpu cmd; do
@@ -462,6 +464,11 @@ main() {
         ;;
       --no-color)
         NO_COLOR=1
+        ;;
+      *)
+        echo "Error: Unknown option '$arg'" >&2
+        echo "Run '$(basename "$0") --help' for usage instructions." >&2
+        exit 1
         ;;
     esac
   done
